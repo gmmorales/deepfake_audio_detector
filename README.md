@@ -34,3 +34,29 @@ La documentación interactiva de FastAPI queda disponible en
 WAV, MP3, OGG o FLAC. Para obtener predicciones se necesita un modelo entrenado
 en `models/audio_model.keras`; si aún no está disponible, la API responde con
 HTTP 503.
+
+## Datos de entrenamiento
+
+Guardá los audios originales en `data/raw/fisico/` o `data/raw/digital/` según
+su etiqueta, y registrá cada archivo en `data/metadata.csv`. La columna
+`relative_path` debe apuntar al audio desde la raíz del repositorio. `label`
+debe ser `fisico` o `digital`, y `source_id` es obligatorio: usa el mismo ID
+para grabaciones que comparten una fuente, para evitar que queden a la vez en
+entrenamiento y validación. Los audios originales y los datos derivados de
+`data/processed/` se excluyen de Git.
+
+Con ejemplos etiquetados de ambas clases, entrená el modelo con:
+
+```powershell
+uv run python -m training.train
+```
+
+El módulo `training/` contiene el script de entrenamiento y las funciones de
+preprocesamiento de audio compartidas con el clasificador. El script divide las
+grabaciones por `source_id`, informa exactitud y recall digital a nivel de
+grabación para el conjunto de validación y guarda el modelo en
+`models/audio_model.keras`. Se requieren al menos dos fuentes distintas por
+clase para poder separar entrenamiento y validación; con tan pocos datos, las
+métricas no serán concluyentes. Se pueden ajustar épocas, tamaño de lote,
+semilla, CSV, raíz de datos y ruta de salida con `--epochs`, `--batch-size`,
+`--seed`, `--metadata`, `--data-root` y `--output`.

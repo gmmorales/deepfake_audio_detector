@@ -28,6 +28,13 @@ de una fuente acústica física o si fue generado o alterado electrónicamente.
 Como todavía no hay audios disponibles, el trabajo inicial combinará la
 búsqueda de conjuntos de datos públicos con la recopilación de grabaciones
 propias. Se deberán documentar la procedencia y las etiquetas de los ejemplos.
+Los audios originales se organizarán en `data/raw/fisico/` y
+`data/raw/digital/`, con su inventario en `data/metadata.csv`; los archivos
+derivados irán en `data/processed/`. El modelo entrenado se guardará en
+`models/audio_model.keras`. Los audios originales y los datos derivados no se
+versionarán en Git. El directorio `training/` contendrá el script de
+entrenamiento y el preprocesamiento compartido con el clasificador; la división
+entre entrenamiento y validación se hará por `source_id`.
 
 La evaluación deberá separar las grabaciones —y, cuando sea posible, sus
 fuentes— entre entrenamiento y prueba para evitar que fragmentos del mismo

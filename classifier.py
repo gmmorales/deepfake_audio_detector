@@ -1,10 +1,14 @@
-import io
 import logging
 from pathlib import Path
 
-import librosa
 import numpy as np
 import tensorflow as tf
+
+from training.audio_features import (
+    TARGET_SHAPE,
+    WINDOW_SECONDS,
+    audio_to_log_mel_windows,
+)
 
 
 logger = logging.getLogger(__name__)
@@ -18,8 +22,8 @@ class AudioClassifier:
     def __init__(
         self,
         model_path: str | Path | None = None,
-        target_shape: tuple[int, int] = (128, 128),
-        window_seconds: float = 5.0,
+        target_shape: tuple[int, int] = TARGET_SHAPE,
+        window_seconds: float = WINDOW_SECONDS,
         physical_threshold: float = 0.4,
         digital_threshold: float = 0.6,
     ) -> None:
@@ -55,46 +59,12 @@ class AudioClassifier:
             )
 
     def preprocess_audio(self, file_bytes: bytes) -> np.ndarray:
-        """Convert all audio in the file to 5-second log-Mel model inputs."""
-        if not file_bytes:
-            raise ValueError("Audio file is empty")
-
-        audio_stream = io.BytesIO(file_bytes)
-        audio, sample_rate = librosa.load(audio_stream, sr=16000, mono=True)
-        if audio.size == 0:
-            raise ValueError("Audio file contains no samples")
-
-        window_size = int(sample_rate * self.window_seconds)
-        windows = []
-        for start in range(0, audio.size, window_size):
-            window = audio[start : start + window_size]
-            if window.size < window_size:
-                window = np.pad(window, (0, window_size - window.size))
-
-            mel_spectrogram = librosa.feature.melspectrogram(
-                y=window,
-                sr=sample_rate,
-                n_mels=128,
-            )
-            mel_spectrogram_db = librosa.power_to_db(
-                mel_spectrogram,
-                ref=np.max,
-            )
-            value_range = float(np.ptp(mel_spectrogram_db))
-            if value_range > 0:
-                normalized_spectrogram = (
-                    mel_spectrogram_db - mel_spectrogram_db.min()
-                ) / value_range
-            else:
-                normalized_spectrogram = np.zeros_like(mel_spectrogram_db)
-
-            image = tf.image.resize(
-                normalized_spectrogram[..., np.newaxis],
-                self.target_shape,
-            )
-            windows.append(image.numpy().astype(np.float32, copy=False))
-
-        return np.stack(windows)
+        """Convert audio to normalized, fixed-size log-Mel model inputs."""
+        return audio_to_log_mel_windows(
+            file_bytes,
+            target_shape=self.target_shape,
+            window_seconds=self.window_seconds,
+        )
 
     def predict(self, file_bytes: bytes) -> dict[str, str | float]:
         """Classify a recording using the mean digital score across its windows."""
